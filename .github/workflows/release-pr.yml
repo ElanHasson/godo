@@ -90,7 +90,7 @@ jobs:
           header="## [${version}] - ${date}"
 
           # Generate CHANGELOG from PRs (this writes to CHANGELOG.md file)
-          github-changelog-generator -org "${{ github.repository_owner }}" -repo "${{ github.event.repository.name }}"
+          changelog="$(github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}')"          
           
           # Check if version header already exists (with any date)
           version_pattern="## \[${version}\]"
@@ -114,33 +114,31 @@ jobs:
             mv NEW_CHANGELOG.md CHANGELOG.md
           fi
 
-          # Extract changelog entries for this version from the generated changelog
-          # Get content between this version header and the next version header (or end of file)
-          changelog_entries=$(awk -v version="$version" '
-            /^## \[/ { 
-              if ($0 ~ "\\[" version "\\]") { 
-                found=1; next 
-              } else if (found) { 
-                exit 
-              } 
-            }
-            found && !/^## \[/ { print }
-          ' CHANGELOG.md)
+          # Extract unreleased entries from the captured changelog output
+          unreleased_entries=$(echo "$changelog" | awk '
+            /^## \[Unreleased\]/ { found=1; next }
+            /^## \[/ && found { exit }
+            found && NF > 0 { print }
+          ')
 
-          # If we have changelog entries, insert them under the version header
-          if [ -n "$changelog_entries" ]; then
+          # If we have unreleased entries, insert them under the version header
+          if [ -n "$unreleased_entries" ]; then
             echo "ℹ️ Inserting changelog entries under ${header}..."
             
             # Insert the changelog entries right after the version header
-            awk -v header="$header" -v entries="$changelog_entries" '
+            awk -v header="$header" -v entries="$unreleased_entries" '
               $0 == header {
                 print; print ""; print entries; next
               }
               { print }
-            ' CHANGELOG.md > CHANGELOG.md
+            ' CHANGELOG.md > NEW_CHANGELOG.md
+            
+            mv NEW_CHANGELOG.md CHANGELOG.md
+          else
+            echo "⚠️ No unreleased entries found in generated changelog"
           fi
 
-          git add .
+          git add CHANGELOG.md godo.go
 
       - name: Commit changes (only if needed)
         run: |
