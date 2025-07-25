@@ -78,7 +78,7 @@ jobs:
       - name: Update libraryVersion in godo.go
         run: |
           version="${{ github.event.inputs.version }}"
-          sed -i -E "s/^(\s*libraryVersion = \")[^\"]+(\")/\1${version}\2/" godo.go
+          sed -i -E "s/^(\s*libraryVersion = \")[^\"]+(\")$/\1${version}\2/" godo.go
 
       - name: Generate CHANGELOG.md and insert header if missing
         env:
