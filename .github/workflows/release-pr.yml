@@ -69,6 +69,11 @@ jobs:
         run: |
           branch="${VERSION_PREFIX}/${{ github.event.inputs.version }}"
           git checkout -b "$branch"
+      - name: Update libraryVersion in godo.go
+        run: |
+          version="${{ github.event.inputs.version }}"
+          sed -i -E 's/^(\s*libraryVersion = ")[^"]+(")/\11.161.0\2/' godo.go
+          git add godo.go
 
       - name: Install github-changelog-generator@latest
         env:
@@ -122,6 +127,15 @@ jobs:
             echo "ℹ️ Inserting new entries under ${header}..."
             echo "📋 Entries to insert: '$new_entries'"
             
+            # Debug: Check if header exists in file
+            if grep -Fq "$header" CHANGELOG.md; then
+              echo "✅ Found header '$header' in CHANGELOG.md"
+            else
+              echo "❌ Header '$header' not found in CHANGELOG.md"
+              echo "🔍 Available headers:"
+              grep "^## \[" CHANGELOG.md | head -3
+            fi
+            
             # Insert the new entries right after the version header
             awk -v header="$header" -v entries="$new_entries" '
               $0 == header {
@@ -130,7 +144,17 @@ jobs:
               { print }
             ' CHANGELOG.md > NEW_CHANGELOG.md
             
-            mv NEW_CHANGELOG.md CHANGELOG.md
+            # Debug: Check if file was actually modified
+            if [ -f NEW_CHANGELOG.md ]; then
+              echo "✅ NEW_CHANGELOG.md created"
+              echo "📝 First 15 lines of NEW_CHANGELOG.md:"
+              head -15 NEW_CHANGELOG.md
+              mv NEW_CHANGELOG.md CHANGELOG.md
+              echo "✅ Moved NEW_CHANGELOG.md to CHANGELOG.md"
+            else
+              echo "❌ NEW_CHANGELOG.md was not created"
+              exit 1
+            fi
           else
             echo "⚠️ No new entries found from github-changelog-generator stdout"
             exit 1
@@ -141,7 +165,7 @@ jobs:
           echo "📊 Files to be added:"
           git diff --cached --name-only || echo "No files staged"
 
-          git add CHANGELOG.md godo.go
+          git add CHANGELOG.md
           
 
       - name: Commit changes (only if needed)
