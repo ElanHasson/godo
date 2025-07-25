@@ -29,6 +29,9 @@ env:
 jobs:
   release-pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Validate version is SemVer
