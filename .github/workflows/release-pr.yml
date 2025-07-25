@@ -68,12 +68,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           go install github.com/digitalocean/github-changelog-generator@latest
-
-      - name: Generate CHANGELOG.md from PRs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          github-changelog-generator -org digitalocean -repo godo
       
       - name: Update libraryVersion in godo.go
         run: |
@@ -92,7 +86,9 @@ jobs:
             exit 0
           fi
 
-          new_section="${header}\n\n\n"
+          changelog=$(github-changelog-generator -org digitalocean -repo godo)
+
+           new_section="${header}\n\n${changelog}\n"
 
           awk -v section="$new_section" '
             NR==1 { print; next }
