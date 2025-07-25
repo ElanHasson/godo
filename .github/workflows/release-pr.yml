@@ -6,9 +6,22 @@ on:
       version:
         description: 'Version to release (e.g. v1.8.0)'
         required: true
-      changelog:
-        description: 'Changelog bullet points (markdown, one per line)'
+      changelog1:
+        description: 'Changelog entry 1 (Markdown bullet)'
         required: true
+      changelog2:
+        description: 'Changelog entry 2 (optional)'
+        required: false
+      changelog3:
+        description: 'Changelog entry 3 (optional)'
+        required: false
+      changelog4:
+        description: 'Changelog entry 4 (optional)'
+        required: false
+      changelog5:
+        description: 'Changelog entry 5 (optional)'
+        required: false
+
         type: string
 
 env:
@@ -75,12 +88,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          version="${{ github.event.inputs.version }}"
-          changelog="${{ github.event.inputs.changelog }}"
-          branch="${VERSION_PREFIX}/${version}"
-          short_sha="${{ steps.main_sha.outputs.sha }}"
-          gh pr create \
+            version="${{ github.event.inputs.version }}"
+            branch="${VERSION_PREFIX}/${version}"
+            short_sha="${{ steps.main_sha.outputs.sha }}"
+
+            changelog=$(printf "%s\n%s\n%s\n%s\n%s\n" \
+            "${{ github.event.inputs.changelog1 }}" \
+            "${{ github.event.inputs.changelog2 }}" \
+            "${{ github.event.inputs.changelog3 }}" \
+            "${{ github.event.inputs.changelog4 }}" \
+            "${{ github.event.inputs.changelog5 }}")
+
+            gh pr create \
             --base main \
             --head "$branch" \
             --title "Release ${version} (${short_sha})" \
-            --body "This PR updates the CHANGELOG and libraryVersion for ${version}.\n\nChangelog:\n${changelog}"
+            --body <<EOF
+            This PR updates the CHANGELOG and libraryVersion for ${version}.
+
+            Changelog:
+            ${changelog}
+            EOF
