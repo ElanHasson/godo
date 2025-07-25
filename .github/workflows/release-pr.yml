@@ -68,6 +68,7 @@ jobs:
         run: |
           branch="${VERSION_PREFIX}/${{ github.event.inputs.version }}"
           git checkout -b "$branch"
+          git reset --hard origin/main # re-use existing branch if it exists
 
       - name: Install github-changelog-generator@latest
         env:
