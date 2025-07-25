@@ -37,8 +37,8 @@ jobs:
       - name: Validate version is SemVer
         run: |
           version="${{ github.event.inputs.version }}"
-          if [[ ! "$version" =~ ^?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Invalid version: '$version'. Must match semantic versioning (e.g., 1.2.3)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid version: '$version'. Must match semantic versioning (e.g. 1.2.3)"
             exit 1
           fi
 
