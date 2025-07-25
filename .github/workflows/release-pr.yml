@@ -107,13 +107,15 @@ jobs:
 
           mv NEW_CHANGELOG.md CHANGELOG.md
 
+          git add CHANGELOG.md godo.go
+
+
 
       - name: Show changes before commit
         run: git diff
 
       - name: Commit changes (only if needed)
         run: |
-          git add CHANGELOG.md godo.go
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 1
