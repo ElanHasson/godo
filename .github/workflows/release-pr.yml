@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-
+      
     steps:
       - name: Validate version is SemVer
         run: |
@@ -76,6 +76,8 @@ jobs:
           header="## [${version}] - ${date}"
 
       - name: Insert version section manually if missing and generate CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="${{ github.event.inputs.version }}"
           date=$(date +%F)
@@ -124,7 +126,7 @@ jobs:
           version="${{ github.event.inputs.version }}"
           branch="${VERSION_PREFIX}/${version}"
 
-          changelog=$(github-changelog-generator -org digitalocean -repo godo)
+          changelog=$(github-changelog-generator -org ${{github.repository_owner}} -repo ${{github.event.repository.name}})
           changelog=$(echo "$changelog" | sed '/^\s*$/d')
 
           gh pr create \
