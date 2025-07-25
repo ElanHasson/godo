@@ -137,15 +137,10 @@ jobs:
                 print; print ""; print entries; next
               }
               { print }
-            ' CHANGELOG.md > NEW_CHANGELOG.md
-            
-            mv NEW_CHANGELOG.md CHANGELOG.md
+            ' CHANGELOG.md > CHANGELOG.md
           fi
 
-          git add CHANGELOG.md godo.go
-
-      - name: Show changes before commit
-        run: git diff
+          git add .
 
       - name: Commit changes (only if needed)
         run: |
