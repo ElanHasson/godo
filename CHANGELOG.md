@@ -6,7 +6,7 @@
 
 ## [1.160.1] - 2025-07-25
 
-* sddd 1ss23
+- #3 - @ElanHasson - Update 1-click_test.go
 
 ## [v1.160.0] - 2025-07-24
 
