@@ -81,87 +81,77 @@ jobs:
           version="${{ github.event.inputs.version }}"
           sed -i -E 's/^(\s*libraryVersion = ")[^"]+(")/\11.161.0\2/' godo.go
 
-      - name: Generate CHANGELOG.md and insert header if missing
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          version="${{ github.event.inputs.version }}"
-          date=$(date +%F)
-          header="## [${version}] - ${date}"
+      # Generate CHANGELOG from PRs (this writes to CHANGELOG.md file)
+      echo "🔄 Running github-changelog-generator..."
+      github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}'
 
-          # Generate CHANGELOG from PRs (this writes to CHANGELOG.md file)
-          echo "🔄 Running github-changelog-generator..."
-          changelog="$(github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}')"          
-          
-          # Debug: Check what we captured
-          echo "📊 Changelog variable length: ${#changelog}"
-          echo "📝 First 500 chars of changelog:"
-          echo "$changelog" | head -c 500
-          echo ""
-          echo "📄 CHANGELOG.md file status:"
-          ls -la CHANGELOG.md 2>/dev/null || echo "CHANGELOG.md does not exist"
-          
-          # Check if version header already exists (with any date)
-          version_pattern="## \[${version}\]"
-          if grep -q "$version_pattern" CHANGELOG.md; then
-            echo "✅ CHANGELOG contains section for ${version}, updating date..."
-            
-            # Update the existing header with current date
-            sed -i -E "s/^## \[${version}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}/## [${version}] - ${date}/" CHANGELOG.md
-          else
-            echo "ℹ️ CHANGELOG does not contain section for ${version}, inserting header manually..."
-            
-            # Insert header after "# Change Log" title
-            awk -v section="$header\n" '
-              NR == 1 { print; next }
-              /^# Change Log/ && !inserted {
-                print; print ""; print section; inserted=1; next
-              }
-              { print }
-            ' CHANGELOG.md > NEW_CHANGELOG.md
-            
-            mv NEW_CHANGELOG.md CHANGELOG.md
-          fi
+      # Debug: Check what was generated in the file
+      echo "📄 CHANGELOG.md file status:"
+      ls -la CHANGELOG.md 2>/dev/null || echo "CHANGELOG.md does not exist"
+      echo "📝 First 20 lines of generated CHANGELOG.md:"
+      head -20 CHANGELOG.md
 
-          # Extract unreleased entries from the captured changelog output
-          echo "🔍 Extracting unreleased entries..."
-          unreleased_entries=$(echo "$changelog" | awk '
-            /^## \[Unreleased\]/ { found=1; next }
-            /^## \[/ && found { exit }
-            found && NF > 0 { print }
-          ')
-          
-          # Debug: Show what we found
-          echo "📋 Unreleased entries length: ${#unreleased_entries}"
-          echo "📋 Unreleased entries content:"
-          echo "$unreleased_entries"
-          echo "--- End of unreleased entries ---"
+      # Check if version header already exists (with any date)
+      version_pattern="## \[${version}\]"
+      if grep -q "$version_pattern" CHANGELOG.md; then
+      echo "✅ CHANGELOG contains section for ${version}, updating date..."
 
-          # If we have unreleased entries, insert them under the version header
-          if [ -n "$unreleased_entries" ]; then
-            echo "ℹ️ Inserting changelog entries under ${header}..."
-            
-            # Insert the changelog entries right after the version header
-            awk -v header="$header" -v entries="$unreleased_entries" '
-              $0 == header {
-                print; print ""; print entries; next
-              }
-              { print }
-            ' CHANGELOG.md > NEW_CHANGELOG.md
-            
-            mv NEW_CHANGELOG.md CHANGELOG.md
-          else
-            echo "⚠️ No unreleased entries found in generated changelog"
-            echo "🔍 Let's check what sections exist in the captured output:"
-            echo "$changelog" | grep "^## \[" || echo "No version headers found in changelog output"
-          fi
-          
-          echo "📊 Final git status:"
-          git status --porcelain
-          echo "📊 Files to be added:"
-          git diff --cached --name-only || echo "No files staged"
+      # Update the existing header with current date
+      sed -i -E "s/^## \[${version}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}/## [${version}] - ${date}/" CHANGELOG.md
+      else
+      echo "ℹ️ CHANGELOG does not contain section for ${version}, inserting header manually..."
 
-          git add CHANGELOG.md godo.go
+      # Insert header after "# Change Log" title
+      awk -v section="$header\n" '
+        NR == 1 { print; next }
+        /^# Change Log/ && !inserted {
+          print; print ""; print section; inserted=1; next
+        }
+        { print }
+      ' CHANGELOG.md > NEW_CHANGELOG.md
+
+      mv NEW_CHANGELOG.md CHANGELOG.md
+      fi
+
+      # Extract unreleased entries from the generated CHANGELOG.md file
+      echo "🔍 Extracting unreleased entries from CHANGELOG.md..."
+      unreleased_entries=$(awk '
+      /^## \[Unreleased\]/ { found=1; next }
+      /^## \[/ && found { exit }
+      found && NF > 0 { print }
+      ' CHANGELOG.md)
+
+      # Debug: Show what we found
+      echo "📋 Unreleased entries length: ${#unreleased_entries}"
+      echo "📋 Unreleased entries content:"
+      echo "$unreleased_entries"
+      echo "--- End of unreleased entries ---"
+
+      # If we have unreleased entries, insert them under the version header
+      if [ -n "$unreleased_entries" ]; then
+      echo "ℹ️ Inserting changelog entries under ${header}..."
+
+      # Insert the changelog entries right after the version header
+      awk -v header="$header" -v entries="$unreleased_entries" '
+        $0 == header {
+          print; print ""; print entries; next
+        }
+        { print }
+      ' CHANGELOG.md > NEW_CHANGELOG.md
+
+      mv NEW_CHANGELOG.md CHANGELOG.md
+      else
+      echo "⚠️ No unreleased entries found in generated changelog"
+      echo "🔍 Let's check what sections exist in CHANGELOG.md:"
+      grep "^## \[" CHANGELOG.md | head -5 || echo "No version headers found in CHANGELOG.md"
+      fi
+
+      echo "📊 Final git status:"
+      git status --porcelain
+      echo "📊 Files to be added:"
+      git diff --cached --name-only || echo "No files staged"
+
+      git add CHANGELOG.md godo.go
           
 
       - name: Commit changes (only if needed)
