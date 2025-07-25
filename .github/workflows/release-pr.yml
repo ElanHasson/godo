@@ -1,4 +1,4 @@
-name: Release PR
+name: Generate CHANGELOG.md
 
 on:
   workflow_dispatch:
@@ -67,7 +67,7 @@ jobs:
           header="## [${version}] - ${date}"
 
           # Run generator
-          github-changelog-generator -org ${{ github.repository_owner }} -repo ${{ github.event.repository.name }}
+          changelog="$(github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}')"
 
           # Check if it inserted the version header
           if grep -q "^## \[${version}\]" CHANGELOG.md; then
@@ -76,7 +76,7 @@ jobs:
           fi
 
           if [ -z "$changelog" ]; then
-            echo "No manual changelog entries provided. Aborting."
+            echo "No changelog entries provided. Aborting."
             exit 1
           fi
 
@@ -116,7 +116,7 @@ jobs:
           version="${{ github.event.inputs.version }}"
           branch="${VERSION_PREFIX}/${version}"
 
-          changelog=$(github-changelog-generator -org ${{github.repository_owner}} -repo ${{github.event.repository.name}})
+          changelog="$(github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}')"
           changelog=$(echo "$changelog" | sed '/^\s*$/d')
 
           gh pr create \
