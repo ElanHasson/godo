@@ -72,8 +72,7 @@ jobs:
       - name: Update libraryVersion in godo.go
         run: |
           version="${{ github.event.inputs.version }}"
-          date=$(date +%F)
-          header="## [${version}] - ${date}"
+          sed -i -E "s/^(libraryVersion = \")[^\"]+(\")/\1${version}\2/" godo.go
 
       - name: Insert version section manually if missing and generate CHANGELOG.md
         env:
@@ -83,12 +82,27 @@ jobs:
           date=$(date +%F)
           header="## [${version}] - ${date}"
 
+          # Run generator
+          github-changelog-generator -org ${{ github.repository_owner }} -repo ${{ github.event.repository.name }}
+
+          # Check if it inserted the version header
           if grep -q "^## \[${version}\]" CHANGELOG.md; then
             echo "CHANGELOG already contains section for ${version}, skipping manual insert."
             exit 0
           fi
 
-          changelog=$(github-changelog-generator -org ${{ github.repository_owner }} -repo ${{ github.event.repository.name }})
+          # Manual fallback using inputs
+          changelog=$(printf "%s\n%s\n%s\n%s\n%s\n" \
+            "${{ github.event.inputs.changelog1 }}" \
+            "${{ github.event.inputs.changelog2 }}" \
+            "${{ github.event.inputs.changelog3 }}" \
+            "${{ github.event.inputs.changelog4 }}" \
+            "${{ github.event.inputs.changelog5 }}" | sed '/^\s*$/d')
+
+          if [ -z "$changelog" ]; then
+            echo "No manual changelog entries provided. Aborting."
+            exit 1
+          fi
 
           new_section="${header}\n\n${changelog}\n"
 
