@@ -30,7 +30,7 @@ jobs:
   release-pr:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # has to be write
+      contents: write
       pull-requests: write
 
     steps:
