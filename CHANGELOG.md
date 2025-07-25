@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.160.2] - 2025-07-25
+
+* sddd 1ss23ee
+
+## [1.160.1] - 2025-07-25
+
+* sddd 1ss23
+
 ## [v1.160.0] - 2025-07-24
 
 - #877 - @m3co-code - impl new doks cluster options

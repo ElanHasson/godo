@@ -196,5 +196,5 @@ jobs:
           gh pr create \
             --base main \
             --head "$branch" \
-            --title "Release ${version} (${{ github.sha }})" \
+            --title "CHANGELOG.md Updated: ${version} (${{ github.sha }})" \
             --body "This PR updates the CHANGELOG and libraryVersion for \`${version}\`.\n\n### Changelog:\n${changelog}"
