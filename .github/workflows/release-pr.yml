@@ -77,6 +77,8 @@ jobs:
           go install github.com/digitalocean/github-changelog-generator@latest
       
       - name: Update libraryVersion in godo.go
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="${{ github.event.inputs.version }}"
           sed -i -E 's/^(\s*libraryVersion = ")[^"]+(")/\11.161.0\2/' godo.go
