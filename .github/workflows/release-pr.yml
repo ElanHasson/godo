@@ -4,24 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g. v1.8.0)'
+        description: "Version to release (e.g. v1.8.0)"
         required: true
       changelog1:
-        description: 'Changelog entry 1 (Markdown bullet)'
+        description: "Changelog entry 1 (Markdown bullet)"
         required: true
       changelog2:
-        description: 'Changelog entry 2 (optional)'
+        description: "Changelog entry 2 (optional)"
         required: false
       changelog3:
-        description: 'Changelog entry 3 (optional)'
+        description: "Changelog entry 3 (optional)"
         required: false
       changelog4:
-        description: 'Changelog entry 4 (optional)'
+        description: "Changelog entry 4 (optional)"
         required: false
       changelog5:
-        description: 'Changelog entry 5 (optional)'
+        description: "Changelog entry 5 (optional)"
         required: false
-
         type: string
 
 env:
@@ -40,27 +39,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      - name: Install github-changelog-generator
-        run: |
-          go install github.com/digitalocean/github-changelog-generator@latest
-        env:
-          GO111MODULE: on
-
-      - name: Generate CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          github-changelog-generator -org digitalocean -repo godo
-
-      - name: Update libraryVersion in godo.go
-        run: |
-          sed -i -E "s/^(var libraryVersion = \")[^\"]+(\")/\1${{ github.event.inputs.version }}\2/" godo.go
 
       - name: Get latest commit on main
         id: main_sha
@@ -74,9 +58,48 @@ jobs:
           branch="${VERSION_PREFIX}/${{ github.event.inputs.version }}"
           git checkout -b "$branch"
 
-      - name: Commit changes
+      - name: Update libraryVersion in godo.go
+        run: |
+          sed -i -E "s/^(var libraryVersion = \")[^\"]+(\")/\1${{ github.event.inputs.version }}\2/" godo.go
+
+      - name: Prepend to CHANGELOG.md (if new version not present)
+        run: |
+          version="${{ github.event.inputs.version }}"
+          date=$(date +%F)
+          header="## [${version}] - ${date}"
+
+          # Check if the header already exists
+          if grep -q "^## \[${version}\]" CHANGELOG.md; then
+            echo "CHANGELOG already contains section for ${version}, skipping prepend."
+            exit 0
+          fi
+
+          # Assemble changelog entries
+          changelog=$(printf "%s\n%s\n%s\n%s\n%s\n" \
+            "${{ github.event.inputs.changelog1 }}" \
+            "${{ github.event.inputs.changelog2 }}" \
+            "${{ github.event.inputs.changelog3 }}" \
+            "${{ github.event.inputs.changelog4 }}" \
+            "${{ github.event.inputs.changelog5 }}")
+
+          # Remove empty lines
+          changelog=$(echo "$changelog" | sed '/^\s*$/d')
+
+          echo -e "${header}\n\n${changelog}\n" > NEW_CHANGELOG.md
+          cat CHANGELOG.md >> NEW_CHANGELOG.md
+          mv NEW_CHANGELOG.md CHANGELOG.md
+
+
+      - name: Show changes before commit
+        run: git diff
+
+      - name: Commit changes (only if needed)
         run: |
           git add CHANGELOG.md godo.go
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 1
+          fi
           git commit -m "Release ${{ github.event.inputs.version }}: update CHANGELOG and libraryVersion"
 
       - name: Push branch
@@ -88,24 +111,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            version="${{ github.event.inputs.version }}"
-            branch="${VERSION_PREFIX}/${version}"
-            short_sha="${{ steps.main_sha.outputs.sha }}"
+          version="${{ github.event.inputs.version }}"
+          branch="${VERSION_PREFIX}/${version}"
+          short_sha="${{ steps.main_sha.outputs.sha }}"
 
-            changelog=$(printf "%s\n%s\n%s\n%s\n%s\n" \
+          changelog=$(printf "%s\n%s\n%s\n%s\n%s\n" \
             "${{ github.event.inputs.changelog1 }}" \
             "${{ github.event.inputs.changelog2 }}" \
             "${{ github.event.inputs.changelog3 }}" \
             "${{ github.event.inputs.changelog4 }}" \
             "${{ github.event.inputs.changelog5 }}")
+          changelog=$(echo "$changelog" | sed '/^\s*$/d')
 
-            gh pr create \
+          gh pr create \
             --base main \
             --head "$branch" \
             --title "Release ${version} (${short_sha})" \
-            --body <<EOF
-            This PR updates the CHANGELOG and libraryVersion for ${version}.
-
-            Changelog:
-            ${changelog}
-            EOF
+            --body "This PR updates the CHANGELOG and libraryVersion for \`${version}\`.\n\n### Changelog:\n${changelog}"
