@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g. v1.8.0)"
+        description: "Version to release (e.g. 1.8.0)"
         required: true
       changelog1:
         description: "Changelog entry 1 (Markdown bullet)"
@@ -60,7 +60,8 @@ jobs:
 
       - name: Update libraryVersion in godo.go
         run: |
-          sed -i -E "s/^(var libraryVersion = \")[^\"]+(\")/\1${{ github.event.inputs.version }}\2/" godo.go
+          version="${{ github.event.inputs.version }}"
+          sed -i -E "s/^(libraryVersion = \")[^\"]+(\")/\1${version}\2/" godo.go
 
       - name: Prepend to CHANGELOG.md (if new version not present)
         run: |
