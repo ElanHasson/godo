@@ -30,7 +30,7 @@ jobs:
   release-pr:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read # has to be write
       pull-requests: write
 
     steps:
@@ -124,12 +124,7 @@ jobs:
           version="${{ github.event.inputs.version }}"
           branch="${VERSION_PREFIX}/${version}"
 
-          changelog=$(printf "%s\n%s\n%s\n%s\n%s\n" \
-            "${{ github.event.inputs.changelog1 }}" \
-            "${{ github.event.inputs.changelog2 }}" \
-            "${{ github.event.inputs.changelog3 }}" \
-            "${{ github.event.inputs.changelog4 }}" \
-            "${{ github.event.inputs.changelog5 }}")
+          changelog=$(github-changelog-generator -org digitalocean -repo godo)
           changelog=$(echo "$changelog" | sed '/^\s*$/d')
 
           gh pr create \
