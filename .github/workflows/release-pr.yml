@@ -79,14 +79,14 @@ jobs:
           echo "📊 Files to be added:"
           git diff --cached --name-only || echo "No files staged"
 
-          # Check if CHANGELOG.md has actually changed
-          if git diff --quiet CHANGELOG.md; then
-            echo "❌ ERROR: CHANGELOG.md was not modified"
+          # Check if godo.go has actually changed
+          if git diff --quiet godo.go; then
+            echo "❌ ERROR: godo.go was not modified"
             exit 1
           else
-            echo "✅ CHANGELOG.md has been modified successfully"
+            echo "✅ godo.go has been modified successfully"
           fi
-          git add CHANGELOG.md
+          git add godo.go
       - name: Install github-changelog-generator@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
