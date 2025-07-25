@@ -190,11 +190,20 @@ jobs:
           version="${{ github.event.inputs.version }}"
           branch="${VERSION_PREFIX}/${version}"
 
-          changelog="$(github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}')"
-          changelog=$(echo "$changelog" | sed '/^\s*$/d')
+          # Extract the actual entries that were added to CHANGELOG.md for this version
+          changelog=$(awk -v version="$version" '
+            $0 ~ "^## \\[" version "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found && NF > 0 { print }
+          ' CHANGELOG.md)
+
+          pr_body="This PR updates the CHANGELOG and libraryVersion for \`${version}\`.
+
+          ### Changelog:
+          ${changelog}"
 
           gh pr create \
             --base main \
             --head "$branch" \
             --title "CHANGELOG.md Updated: ${version} (${{ github.sha }})" \
-            --body "This PR updates the CHANGELOG and libraryVersion for \`${version}\`.\n\n### Changelog:\n${changelog}"
+            --body "$pr_body"
