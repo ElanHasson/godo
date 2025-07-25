@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.60.1] - 2025-07-25
+## [1.60.1] - 2025-07-23
 
 - #14 - @ElanHasson - Add GitHub Actions workflow to generate CHANGELOG.md and update libra…
 - #3 - @ElanHasson - Update 1-click_test.go
