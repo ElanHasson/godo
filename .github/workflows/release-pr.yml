@@ -63,7 +63,7 @@ jobs:
           branch="${VERSION_PREFIX}/${{ github.event.inputs.version }}"
           git checkout -b "$branch"
 
-      - name: Generate CHANGELOG.md from PRs
+      - name: Install github-changelog-generator@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -75,7 +75,7 @@ jobs:
           date=$(date +%F)
           header="## [${version}] - ${date}"
 
-      - name: Insert version section manually if missing
+      - name: Insert version section manually if missing and generate CHANGELOG.md
         run: |
           version="${{ github.event.inputs.version }}"
           date=$(date +%F)
@@ -86,9 +86,9 @@ jobs:
             exit 0
           fi
 
-          changelog=$(github-changelog-generator -org digitalocean -repo godo)
+          changelog=$(github-changelog-generator -org ${{ github.repository_owner }} -repo ${{ github.event.repository.name }})
 
-           new_section="${header}\n\n${changelog}\n"
+          new_section="${header}\n\n${changelog}\n"
 
           awk -v section="$new_section" '
             NR==1 { print; next }
