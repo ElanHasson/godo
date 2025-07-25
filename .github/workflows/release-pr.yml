@@ -90,7 +90,7 @@ jobs:
           header="## [${version}] - ${date}"
 
           # Generate CHANGELOG from PRs (this writes to CHANGELOG.md file)
-          changelog="$(github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}')"          
+          unreleased_entries="$(github-changelog-generator -org '${{ github.repository_owner }}' -repo '${{ github.event.repository.name }}')"          
           
           # Check if version header already exists (with any date)
           version_pattern="## \[${version}\]"
@@ -113,13 +113,6 @@ jobs:
             
             mv NEW_CHANGELOG.md CHANGELOG.md
           fi
-
-          # Extract unreleased entries from the captured changelog output
-          unreleased_entries=$(echo "$changelog" | awk '
-            /^## \[Unreleased\]/ { found=1; next }
-            /^## \[/ && found { exit }
-            found && NF > 0 { print }
-          ')
 
           # If we have unreleased entries, insert them under the version header
           if [ -n "$unreleased_entries" ]; then
