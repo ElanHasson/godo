@@ -63,38 +63,46 @@ jobs:
           branch="${VERSION_PREFIX}/${{ github.event.inputs.version }}"
           git checkout -b "$branch"
 
-      - name: Update libraryVersion in godo.go
+      - name: Generate CHANGELOG.md from PRs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          version="${{ github.event.inputs.version }}"
-          sed -i -E "s/^(libraryVersion = \")[^\"]+(\")/\1${version}\2/" godo.go
+          go install github.com/digitalocean/github-changelog-generator@latest
 
-      - name: Prepend to CHANGELOG.md (if new version not present)
+      - name: Generate CHANGELOG.md from PRs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          github-changelog-generator -org digitalocean -repo godo
+      
+      - name: Update libraryVersion in godo.go
         run: |
           version="${{ github.event.inputs.version }}"
           date=$(date +%F)
           header="## [${version}] - ${date}"
 
-          # Check if the header already exists
+      - name: Insert version section manually if missing
+        run: |
+          version="${{ github.event.inputs.version }}"
+          date=$(date +%F)
+          header="## [${version}] - ${date}"
+
           if grep -q "^## \[${version}\]" CHANGELOG.md; then
-            echo "CHANGELOG already contains section for ${version}, skipping prepend."
+            echo "CHANGELOG already contains section for ${version}, skipping manual insert."
             exit 0
           fi
 
-          # Assemble changelog entries
-          changelog=$(printf "%s\n%s\n%s\n%s\n%s\n" \
-            "${{ github.event.inputs.changelog1 }}" \
-            "${{ github.event.inputs.changelog2 }}" \
-            "${{ github.event.inputs.changelog3 }}" \
-            "${{ github.event.inputs.changelog4 }}" \
-            "${{ github.event.inputs.changelog5 }}")
+          new_section="${header}\n\n\n"
 
-          # Remove empty lines
-          changelog=$(echo "$changelog" | sed '/^\s*$/d')
+          awk -v section="$new_section" '
+            NR==1 { print; next }
+            /^# Change Log/ && !inserted {
+              print; print ""; print section; inserted=1; next
+            }
+            { print }
+          ' CHANGELOG.md > NEW_CHANGELOG.md
 
-          echo -e "${header}\n\n${changelog}\n" > NEW_CHANGELOG.md
-          cat CHANGELOG.md >> NEW_CHANGELOG.md
           mv NEW_CHANGELOG.md CHANGELOG.md
-
 
       - name: Show changes before commit
         run: git diff
