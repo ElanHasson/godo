@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.60.1] - 2025-07-25
+
+- #14 - @ElanHasson - Add GitHub Actions workflow to generate CHANGELOG.md and update libra…
+- #3 - @ElanHasson - Update 1-click_test.go
+
 ## [v1.160.0] - 2025-07-24
 
 - #877 - @m3co-code - impl new doks cluster options
