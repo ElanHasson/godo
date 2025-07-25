@@ -10,14 +10,19 @@ on:
         description: 'Changelog bullet points (markdown, one per line)'
         required: true
         type: string
-        
+
+env:
+  VERSION_PREFIX: release
 
 jobs:
   release-pr:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -28,10 +33,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Install github-changelog-generator
         run: |
           go install github.com/digitalocean/github-changelog-generator@latest
+        env:
+          GO111MODULE: on
 
       - name: Generate CHANGELOG.md
         env:
@@ -41,33 +47,40 @@ jobs:
 
       - name: Update libraryVersion in godo.go
         run: |
-          version="${{ github.event.inputs.version }}"
-          sed -i -E "s/^(var libraryVersion = \")[^"]+(\")/\1${version}\2/" godo.go
+          sed -i -E "s/^(var libraryVersion = \")[^\"]+(\")/\1${{ github.event.inputs.version }}\2/" godo.go
+
+      - name: Get latest commit on main
+        id: main_sha
+        run: |
+          git fetch origin main
+          sha=$(git rev-parse --short origin/main)
+          echo "sha=$sha" >> $GITHUB_OUTPUT
 
       - name: Create release branch
         run: |
-          version="${{ github.event.inputs.version }}"
-          git checkout -b release/${version}
+          branch="${VERSION_PREFIX}/${{ github.event.inputs.version }}"
+          git checkout -b "$branch"
 
       - name: Commit changes
         run: |
-          version="${{ github.event.inputs.version }}"
           git add CHANGELOG.md godo.go
-          git commit -m "Release ${version}: update CHANGELOG and libraryVersion"
+          git commit -m "Release ${{ github.event.inputs.version }}: update CHANGELOG and libraryVersion"
 
       - name: Push branch
         run: |
-          version="${{ github.event.inputs.version }}"
-          git push origin release/${version}
+          branch="${VERSION_PREFIX}/${{ github.event.inputs.version }}"
+          git push origin "$branch"
 
-      - name: Create Pull Request with gh cli
+      - name: Create Pull Request with gh CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="${{ github.event.inputs.version }}"
           changelog="${{ github.event.inputs.changelog }}"
+          branch="${VERSION_PREFIX}/${version}"
+          short_sha="${{ steps.main_sha.outputs.sha }}"
           gh pr create \
             --base main \
-            --head main/${version} \
-            --title "Release ${version}" \
+            --head "$branch" \
+            --title "Release ${version} (${short_sha})" \
             --body "This PR updates the CHANGELOG and libraryVersion for ${version}.\n\nChangelog:\n${changelog}"
