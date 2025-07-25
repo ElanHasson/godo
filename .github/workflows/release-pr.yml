@@ -75,8 +75,7 @@ jobs:
       - name: Update libraryVersion in godo.go
         run: |
           version="${{ github.event.inputs.version }}"
-          sed -i -E "s/^(libraryVersion = \")[^\"]+(\")/\1${version}\2/" godo.go
-
+          sed -i -E "s/^(\s*libraryVersion = \")[^\"]+(\")/\1${version}\2/" godo.go
       - name: Generate CHANGELOG.md and insert header if missing
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,9 +102,7 @@ jobs:
               print; print ""; print section; inserted=1; next
             }
             { print }
-          ' CHANGELOG.md > NEW_CHANGELOG.md
-
-          mv NEW_CHANGELOG.md CHANGELOG.md
+          ' CHANGELOG.md > CHANGELOG.md
 
           git add CHANGELOG.md godo.go
 
