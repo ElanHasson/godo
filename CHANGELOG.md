@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.160.5] - 2025-07-28
+
+- #32 - @ElanHasson - Revert "CHANGELOG.md Updated: 1.160.5 (81355efbcb1e6c7c10d8d27d1845541ebae116d0)"
+- #31 - @ElanHasson - Add gha for release info
+- #30 - @github-actions[bot] - CHANGELOG.md Updated: 1.160.5 (81355efbcb1e6c7c10d8d27d1845541ebae116d0)
+
 ## [1.160.4] - 2025-07-25
 
 - #27 - @ElanHasson - Update README.md
